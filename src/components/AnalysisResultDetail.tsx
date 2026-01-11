@@ -3,6 +3,25 @@ import React, { useEffect, useRef, useState } from "react";
 export default function AnalysisResultDetail() {
   const [visibleSections, setVisibleSections] = useState<number[]>([]);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // 타임스탬프를 초 단위로 변환하는 함수
+  const parseTimestamp = (timestamp: string): number => {
+    const [minutes, seconds] = timestamp.split(":").map(Number);
+    return minutes * 60 + seconds;
+  };
+
+  // 비디오 특정 시점으로 이동하는 함수
+  const seekToTime = (timestamp: string) => {
+    if (videoRef.current) {
+      const timeInSeconds = parseTimestamp(timestamp);
+      videoRef.current.currentTime = timeInSeconds;
+      videoRef.current.play();
+
+      // 비디오 위치로 스크롤
+      videoRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -25,10 +44,10 @@ export default function AnalysisResultDetail() {
 
     return () => observer.disconnect();
   }, []);
+
   return (
     <>
       <div className="w-screen bg-[#F7F7F8] text-[#3B3B3B]">
-        {/* 전체 간격 프레임 */}
         <div className="fontLight leading-6 w-full py-20 px-[20%]">
           <span className="text-[25px] fontBold pb-3 border-b border-[#D7D6F1]">
             세부 분석 결과
@@ -52,6 +71,7 @@ export default function AnalysisResultDetail() {
                 <img
                   src="./img/voiceFeedback.png"
                   className="px-[10%] w-auto"
+                  alt="음성 피드백"
                 />
 
                 <div className="mt-12">
@@ -104,6 +124,7 @@ export default function AnalysisResultDetail() {
                 <img
                   src="./img/voiceFeedbackGraph.png"
                   className="mt-6 w-auto px-[15%]"
+                  alt="음성 피드백 그래프"
                 />
               </div>
             </div>
@@ -122,9 +143,7 @@ export default function AnalysisResultDetail() {
               <span className="text-[#5650FF]">시선</span> 분석 결과
             </p>
 
-            {/* 메인 컨테이너 */}
             <div className="mt-5 px-2 flex items-center">
-              {/* 왼쪽 박스 */}
               <div className="min-w-[200px] min-h-[150px] rounded-xl bg-[#F7F7F8] flex flex-col justify-between p-6">
                 <p className="text-[15px] text-gray-600 mb-3">카메라 응시율</p>
                 <p className="text-[36px] fontBold text-[#5650FF] text-right">
@@ -132,7 +151,6 @@ export default function AnalysisResultDetail() {
                 </p>
               </div>
 
-              {/* 오른쪽 설명 */}
               <p className="flex-1 text-[14px] ml-5 pl-4 border-l-2 border-[#D7D6F1]">
                 카메라 응시율이 72%로 비교적 높은 편에 속해요. 전체 발표
                 흐름에서 카메라를 바라보는 시간이 안정적으로 유지되어 청중과의
@@ -163,7 +181,16 @@ export default function AnalysisResultDetail() {
             </p>
 
             <div className="mt-5 px-2">
-              <img src="./img/myVideoEx.png" className="mx-auto" />
+              {/* 비디오 플레이어 */}
+              <div className="w-full max-w-4xl mx-auto">
+                <video
+                  ref={videoRef}
+                  className="w-full rounded-lg shadow-lg"
+                  controls
+                  src="./video/TimeStampTest.mp4">
+                  Your browser does not support the video tag.
+                </video>
+              </div>
 
               <div className="mt-8">
                 <p className="text-[#5650FF] text-[16px] fontBold">
@@ -171,55 +198,64 @@ export default function AnalysisResultDetail() {
                 </p>
 
                 <div className="mt-4 text-[14px] border-2 border-[#D7D6F1] rounded-xl overflow-hidden">
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       핵심 문장을 말할 때 억양이 안정적으로 유지되어 전달력이
                       높았던 구간
                     </div>
-
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:12 ~ 0:18
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:02")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:02 ~ 0:04
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       시선을 카메라에 꾸준히 고정하며 자신감 있는 태도를 보여준
                       구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:25 ~ 0:32
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:08")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:08 ~ 0:12
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       손 제스처가 자연스럽게 내용과 결합되어 설명이 명확하게
                       들렸던 구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:37 ~ 0:45
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:20")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:20 ~ 0:25
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       속도와 톤이 일정하게 유지되어 청중이 내용에 몰입할 수
                       있었던 구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      3:11 ~ 3:54
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:31")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:31 ~ 0:35
+                    </button>
                   </div>
 
-                  <div className="flex">
+                  <div className="flex hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       중요 포인트를 강조할 때 목소리 톤 변화가 적절해 설득력이
                       높았던 구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      5:30 ~ 5:59
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:55")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:55 ~ 1:05
+                    </button>
                   </div>
                 </div>
 
@@ -236,59 +272,68 @@ export default function AnalysisResultDetail() {
                 </p>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-12">
                 <p className="text-[#5650FF] text-[16px] fontBold">
                   개선 포인트
                 </p>
 
                 <div className="mt-4 text-[14px] border-2 border-[#D7D6F1] rounded-xl overflow-hidden">
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       문장 시작 부분에서 속도가 조금 빨라져 내용이 급하게
                       느껴졌던 구간
                     </div>
-
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:12 ~ 0:18
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:02")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:02 ~ 0:04
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       시선이 잠시 화면 밖으로 이동해 집중도가 떨어져 보였던 구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:25 ~ 0:32
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:08")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:08 ~ 0:12
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       말을 잇는 과정에서 '음...', '어...' 등의 반복어가 나타난
                       구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      0:37 ~ 0:45
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:20")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:20 ~ 0:25
+                    </button>
                   </div>
 
-                  <div className="flex border-b border-[#D7D6F1]">
+                  <div className="flex border-b border-[#D7D6F1] hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       손 제스처가 다소 크고 빈번하게 사용되어 메세지가 흐려졌던
                       구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      3:11 ~ 3:54
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:31")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:31 ~ 0:35
+                    </button>
                   </div>
 
-                  <div className="flex">
+                  <div className="flex hover:bg-gray-50 transition-colors">
                     <div className="w-[80%] flex items-center justify-center py-3 px-4 text-center border-r border-[#D7D6F1]">
                       문장 마무리 시 톤이 약해져 전달력이 다소 떨어진 구간
                     </div>
-                    <div className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF]">
-                      5:30 ~ 5:59
-                    </div>
+                    <button
+                      onClick={() => seekToTime("0:55")}
+                      className="w-[20%] flex items-center justify-center py-3 px-4 text-[#5678FF] hover:bg-[#5650FF] hover:text-white transition-colors cursor-pointer">
+                      0:55 ~ 1:05
+                    </button>
                   </div>
                 </div>
 
@@ -322,11 +367,11 @@ export default function AnalysisResultDetail() {
             <p className="text-[20px] fontBold">
               <span className="text-[#5650FF]">발표 내용</span> 분석 결과
             </p>
-            {/* 메인 컨테이너 */}
             <div className="mt-5 px-2">
               <img
                 src="./img/contentFeedbackGraph.png"
                 className="min-w-[200px] h-auto object-contain mx-auto"
+                alt="내용 피드백 그래프"
               />
               <p className="text-[14px] mt-7 px-[8%]">
                 전체적으로 질문의 핵심을 잘 파악하고 이에 맞는 방향으로 답변한
