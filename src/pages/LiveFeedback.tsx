@@ -1,32 +1,66 @@
 import React, { useState, useRef, useEffect } from "react";
 import LiveFeedbackTracker from "../components/LiveFeedbackTracker";
 import CountdownOverlay from "../components/CountdownOverlay";
+import TutorialModal from "../components/TutorialModal";
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
+
+const TUTORIAL_HIDE_KEY = "hideLiveTutorial";
 
 export default function LiveFeedback() {
   const navigate = useNavigate();
 
-  const [showCountdown, setShowCountdown] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // ⭐ showCountdown 변할 때 pause/play
+  // 토글 상태
+  const [isLiveFeedbackOn, setIsLiveFeedbackOn] = useState(true);
+  const [isEmergencyOn, setIsEmergencyOn] = useState(false);
+
+  // 모달창, 카운트다운 시 비디오 일시정지/재생
   useEffect(() => {
     if (!videoRef.current) return;
 
-    if (showCountdown) {
+    if (showTutorial || showCountdown) {
       videoRef.current.pause();
     } else {
       videoRef.current.play();
     }
-  }, [showCountdown]);
+  }, [showTutorial, showCountdown]);
+
+  useEffect(() => {
+    const hideTutorial = localStorage.getItem(TUTORIAL_HIDE_KEY);
+
+    if (hideTutorial === "true") {
+      setShowCountdown(true);
+    } else {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  // (선택) 상태 변경 확인용
+  useEffect(() => {
+    console.log("실시간 피드백:", isLiveFeedbackOn);
+    console.log("돌발 상황:", isEmergencyOn);
+  }, [isLiveFeedbackOn, isEmergencyOn]);
 
   return (
     <>
       <LiveFeedbackTracker />
 
       <div className="relative h-screen w-screen overflow-hidden">
-        {/* 오버레이 */}
+        {/* 튜토리얼 */}
+        {showTutorial && (
+          <TutorialModal
+            onClose={() => {
+              setShowTutorial(false);
+              setShowCountdown(true);
+            }}
+          />
+        )}
+
+        {/* 카운트다운 */}
         {showCountdown && (
           <CountdownOverlay onFinish={() => setShowCountdown(false)} />
         )}
@@ -60,28 +94,45 @@ export default function LiveFeedback() {
               </div>
 
               <div className="text-right space-y-3">
+                {/* 실시간 피드백 */}
                 <div className="flex justify-end items-center gap-3">
                   <span>실시간 피드백</span>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isLiveFeedbackOn}
+                      onChange={(e) => setIsLiveFeedbackOn(e.target.checked)}
+                    />
                     <div className="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-[#ACA9FE] transition-all"></div>
                     <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5"></div>
                   </label>
                 </div>
 
+                {/* 돌발 상황 */}
                 <div className="flex justify-end items-center gap-3">
                   <span>돌발 상황</span>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isEmergencyOn}
+                      onChange={(e) => setIsEmergencyOn(e.target.checked)}
+                    />
                     <div className="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-[#ACA9FE] transition-all"></div>
                     <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5"></div>
                   </label>
                 </div>
 
                 <div
-                  onClick={() => navigate("/result")}
-                  className="cursor-pointer"
-                >
+                  onClick={() => {
+                    // 녹화 종료
+                    (window as any).stopRecording?.();
+
+                    // 결과 페이지 이동
+                    navigate("/result");
+                  }}
+                  className="cursor-pointer">
                   종료하기
                 </div>
               </div>

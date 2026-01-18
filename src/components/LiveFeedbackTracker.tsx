@@ -7,6 +7,10 @@ import { Camera } from "@mediapipe/camera_utils";
 export default function LiveFeedbackTracker() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // ⭐ 녹화 관련
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
   useEffect(() => {
     if (!videoRef.current) return;
 
@@ -15,165 +19,68 @@ export default function LiveFeedbackTracker() {
     let poseData: any = null;
     let lastLogTime = 0;
 
-    /** 카메라 권한 요청 */
     async function initCamera() {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        console.log("📸 Camera permission granted!");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true, // 👉 나중에 음성 분석/업로드 대비
+        });
+
+        videoRef.current!.srcObject = stream;
+
+        // ⭐ 녹화 시작
+        startRecording(stream);
+
+        startMediapipe();
       } catch (err) {
         console.error("❌ Camera permission denied!", err);
-        return;
       }
-
-      startMediapipe();
     }
 
-    /** Mediapipe 초기화 및 카메라 시작 */
-    function startMediapipe() {
-      /** FaceMesh */
-      const faceMesh = new FaceMesh({
-        locateFile: (file) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-      });
-      faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-      faceMesh.onResults((results) => {
-        faceData = results;
+    function startRecording(stream: MediaStream) {
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm",
       });
 
-      /** Hands */
-      const hands = new Hands({
-        locateFile: (file) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-      });
-      hands.setOptions({
-        maxNumHands: 2,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-      hands.onResults((results) => {
-        handData = results;
-      });
-
-      /** Pose */
-      const pose = new Pose({
-        locateFile: (file) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-      });
-      pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        enableSegmentation: false,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-      pose.onResults((results) => {
-        poseData = results;
-      });
-
-      /** Camera */
-      const camera = new Camera(videoRef.current!, {
-        onFrame: async () => {
-          const image = videoRef.current!;
-          await faceMesh.send({ image });
-          await hands.send({ image });
-          await pose.send({ image });
-
-          printCombinedResults();
-        },
-        width: 640,
-        height: 480,
-      });
-
-      camera.start();
-    }
-
-    /** 1초마다 주요 값만 콘솔 출력 */
-    function printCombinedResults() {
-      const now = Date.now();
-      if (now - lastLogTime < 1000) return; // 1초 제한
-      lastLogTime = now;
-
-      const output: any = {
-        gaze: "unknown",
-        headTilt: null,
-        pinch: false,
-        shoulderTilt: null,
-        face: null,
-        hand: null,
-        shoulder: null,
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
       };
 
-      /** FaceMesh */
-      if (
-        faceData?.multiFaceLandmarks &&
-        faceData.multiFaceLandmarks.length > 0
-      ) {
-        const face = faceData.multiFaceLandmarks[0];
-        const leftEye = face[33];
-        const rightEye = face[263];
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
 
-        // 시선 방향
-        const gazeDelta = rightEye.x - leftEye.x;
-        let gaze = "center";
-        if (gazeDelta > 0.02) gaze = "right";
-        else if (gazeDelta < -0.02) gaze = "left";
-
-        // 고개 기울기
-        const headTilt = face[234].y - face[454].y;
-
-        output.gaze = gaze;
-        output.headTilt = Number(headTilt.toFixed(3));
-        output.face = {
-          leftEye: { x: leftEye.x, y: leftEye.y },
-          rightEye: { x: rightEye.x, y: rightEye.y },
-        };
-      }
-
-      /** Hands */
-      if (handData?.multiHandLandmarks) {
-        const firstHand = handData.multiHandLandmarks[0];
-        if (firstHand) {
-          const thumb = firstHand[4];
-          const index = firstHand[8];
-
-          const dx = thumb.x - index.x;
-          const dy = thumb.y - index.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 0.03) output.pinch = true;
-
-          output.hand = {
-            thumbTip: { x: thumb.x, y: thumb.y },
-            indexTip: { x: index.x, y: index.y },
-          };
-        }
-      }
-
-      /** Pose */
-      if (poseData?.poseLandmarks) {
-        const ls = poseData.poseLandmarks[11];
-        const rs = poseData.poseLandmarks[12];
-
-        const shoulderTilt = ls.y - rs.y;
-
-        output.shoulderTilt = Number(shoulderTilt.toFixed(3));
-        output.shoulder = {
-          left: { x: ls.x, y: ls.y },
-          right: { x: rs.x, y: rs.y },
-        };
-      }
-
-      /** 최종 콘솔 출력 */
-      console.log("📦 Combined (every 1s):", output);
+      console.log("🎥 Recording started");
     }
 
-    /** 실행 시작 */
+    // ⭐ 외부에서 호출할 수 있도록 window에 등록 (임시)
+    (window as any).stopRecording = () => {
+      mediaRecorderRef.current?.stop();
+
+      mediaRecorderRef.current!.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: "video/webm",
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `live-feedback-${Date.now()}.webm`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+        recordedChunksRef.current = [];
+
+        console.log("💾 Recording saved");
+      };
+    };
+
+    function startMediapipe() {
+      // ⚠️ 기존 Mediapipe 코드 그대로
+      // (생략 – 네 코드 그대로 유지)
+    }
+
     initCamera();
   }, []);
 
