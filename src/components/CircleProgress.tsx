@@ -14,6 +14,13 @@ const CircleProgress: React.FC<CircleProgressProps> = ({
   const [animatedScore, setAnimatedScore] = useState(0);
   const [animatedPercentage, setAnimatedPercentage] = useState(0);
 
+  /** 점수에 따른 색상 */
+  const getStrokeColor = (score: number) => {
+    if (score < 40) return "#DB1013";
+    if (score < 70) return "#FFA956";
+    return "#4DCB56";
+  };
+
   useEffect(() => {
     const duration = 1500;
     const steps = 60;
@@ -64,9 +71,10 @@ const CircleProgress: React.FC<CircleProgressProps> = ({
             cx={radius}
             cy={radius}
           />
+
           {/* Progress circle */}
           <circle
-            stroke="#FFA855"
+            stroke={getStrokeColor(score)}
             fill="transparent"
             strokeWidth={strokeWidth}
             strokeDasharray={`${circumference} ${circumference}`}

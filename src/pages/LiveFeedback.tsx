@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import LiveFeedbackTracker from "../components/LiveFeedbackTracker";
 import CountdownOverlay from "../components/CountdownOverlay";
 import TutorialModal from "../components/TutorialModal";
+import VoiceWaveIndicator from "../components/VoiceWaveIndicator";
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +18,8 @@ export default function LiveFeedback() {
   // 토글 상태
   const [isLiveFeedbackOn, setIsLiveFeedbackOn] = useState(true);
   const [isEmergencyOn, setIsEmergencyOn] = useState(false);
+
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   // 모달창, 카운트다운 시 비디오 일시정지/재생
   useEffect(() => {
@@ -88,9 +91,20 @@ export default function LiveFeedback() {
               <FaArrowLeftLong size={30} />
             </div>
 
+            {/* 음성 인식 파동 */}
             <div className="px-10 flex justify-between items-center">
               <div>
-                <img src="./img/soundWave.png" className="h-28 w-28" />
+                <VoiceWaveIndicator
+                  size={112}
+                  threshold={30} // 음성 감지 민감도 (낮을수록 민감)
+                  onVoiceDetected={(isDetected) => {
+                    console.log("음성 감지:", isDetected);
+                    // 필요한 로직 추가
+                  }}
+                  onError={(error) => {
+                    console.error(error);
+                  }}
+                />
               </div>
 
               <div className="text-right space-y-3">

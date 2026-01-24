@@ -1,9 +1,10 @@
 import React from "react";
 import CircleProgress from "./CircleProgress";
+import LinearProgressBar from "./LinearProgressBar";
 
 export default function AnalysisResult() {
   const progressData = [
-    { label: "발화 속도", score: 50 },
+    { label: "발화 속도", score: 20 },
     { label: "시선 집중도", score: 62 },
     { label: "주제 적절성", score: 75 },
     { label: "제스처 안정성", score: 62 },
@@ -18,7 +19,7 @@ export default function AnalysisResult() {
             분석 결과
           </p>
 
-          {/* 분석 총점 그래프 */}
+          {/* 분석 총점 그래프 원형*/}
           <div className="fontRegular flex justify-between items-center animate-[fadeIn_0.7s_ease-out_0.2s_both]">
             <div className="text-[15px] mr-[13%]">
               <p>분석 총점</p>
@@ -39,6 +40,14 @@ export default function AnalysisResult() {
                 />
               ))}
             </div>
+          </div>
+
+          <div className="mt-15">
+            <LinearProgressBar
+              label="돌발 질문 점수"
+              score={51.25}
+              maxScore={100}
+            />
           </div>
         </div>
 
